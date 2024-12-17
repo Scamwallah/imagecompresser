@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Image Compressor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 30px;
+        }
+        input, button, label, #controller {
+            margin: 10px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+        }
+        #fileSize {
+            margin: 10px;
+            font-weight: bold;
+        }
+        #downloadBtn {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Compressor with Controllers</h1>
+    <p>Adjust compression quality and resize options</p>
+
+    <!-- File Input -->
+    <input type="file" id="imageInput" accept="image/*"><br>
+    
+    <!-- Quality Controller -->
+    <label for="qualityRange">Quality (0.1 to 1): </label>
+    <input type="range" id="qualityRange" min="0.1" max="1" step="0.1" value="0.8"><span id="qualityValue">0.8</span><br>
+
+    <!-- Resize Inputs -->
+    <label for="resizeWidth">Max Width:</label>
+    <input type="number" id="resizeWidth" value="1280" min="100" step="100">
+    <label for="resizeHeight">Max Height:</label>
+    <input type="number" id="resizeHeight" value="1280" min="100" step="100"><br>
+
+    <!-- Compress Button -->
+    <button id="compressBtn">Compress Image</button>
+
+    <!-- File Size Display -->
+    <div id="fileSize"></div>
+    
+    <!-- Compressed Image -->
+    <img id="compressedImage" alt="Compressed Image will appear here"/>
+
+    <!-- Download Button -->
+    <button id="downloadBtn">Download Compressed Image</button>
+
+    <script>
+        const qualityRange = document.getElementById("qualityRange");
+        const qualityValue = document.getElementById("qualityValue");
+
+        qualityRange.addEventListener("input", function () {
+            qualityValue.innerText = qualityRange.value;
+        });
+
+        document.getElementById("compressBtn").addEventListener("click", function () {
+            const fileInput = document.getElementById("imageInput").files[0];
+            const quality = parseFloat(qualityRange.value);
+            const maxWidth = parseInt(document.getElementById("resizeWidth").value);
+            const maxHeight = parseInt(document.getElementById("resizeHeight").value);
+
+            if (!fileInput) {
+                alert("Please upload an image file first!");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const img = new Image();
+                img.src = event.target.result;
+
+                img.onload = function () {
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Resize logic
+                    if (width > maxWidth || height > maxHeight) {
+                        if (width > height) {
+                            height = Math.round((maxWidth / width) * height);
+                            width = maxWidth;
+                        } else {
+                            width = Math.round((maxHeight / height) * width);
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw image on Canvas
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress Image with user quality setting
+                    const compressedImage = canvas.toDataURL("image/jpeg", quality);
+
+                    // Display compressed image
+                    document.getElementById("compressedImage").src = compressedImage;
+
+                    // Calculate file size
+                    fetch(compressedImage)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const sizeInKB = (blob.size / 1024).toFixed(2);
+                            document.getElementById("fileSize").innerText = `Compressed Size: ${sizeInKB} KB`;
+
+                            // Enable download
+                            const downloadBtn = document.getElementById("downloadBtn");
+                            downloadBtn.style.display = "inline-block";
+                            downloadBtn.onclick = () => {
+                                const link = document.createElement("a");
+                                link.href = compressedImage;
+                                link.download = "compressed_image.jpg";
+                                link.click();
+                            };
+                        });
+                };
+            };
+
+            reader.readAsDataURL(fileInput);
+        });
+    </script>
+</body>
+</html>
